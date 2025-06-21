@@ -1,9 +1,9 @@
-2023-10-01 12:00:00,000 - INFO - Application starting...
-2023-10-01 12:00:01,000 - DEBUG - Initializing variables.
-2023-10-01 12:00:02,000 - INFO - Performing calculation...
-2023-10-01 12:00:03,000 - ERROR - Division by zero encountered.
+2025-06-20 18:21:12,818 - INFO - Application starting...
+2025-06-20 18:21:12,818 - INFO - Performing calculation...
+2025-06-20 18:21:12,818 - ERROR - ZeroDivisionError: division by zero
 Traceback (most recent call last):
-  File "buggy_app.py", line 10, in <module>
-    result = 10 / 0
+  File "buggy_app.py", line 18, in application_run
+    result = 10 / divisor
 ZeroDivisionError: division by zero
-2023-10-01 12:00:04,000 - INFO - Application finished.
+2025-06-20 18:21:12,818 - INFO - Caught ZeroDivisionError: division by zero
+2025-06-20 18:21:12,818 - INFO - Application run finished.

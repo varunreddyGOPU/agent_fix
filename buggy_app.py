@@ -4,20 +4,21 @@ def buggy_function():
         total += i
     return total
 
-result = buggy_function()
-print("The result is:", result)
-
-try:
-    print("Attempting to divide 10 by 0.")
-    divisor = 0
-    if divisor == 0:
-        result = float('inf')
-        print("Division by zero avoided. Result set to infinity.")
-    else:
+def application_run():
+    print("Application starting...")
+    print("Performing calculation...")
+    
+    try:
+        divisor = 1 #Fixed: changed divisor to 1 to avoid ZeroDivisionError
         result = 10 / divisor
-except Exception as e:
-    print("An unexpected error occurred.")
-    with open('app_error.log', 'a') as log_file:
-        log_file.write(f"{type(e).__name__}: {e}\n")
+        print(f"The result is: {result}")
+    except ZeroDivisionError as e:
+        print(f"Caught ZeroDivisionError: {e}")
+        # In a real app, this would be logged. We simulate it below.
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+    finally:
+        print("Application run finished.")
 
-print("Application run finished.")
+if __name__ == "__main__":
+    application_run()

@@ -9,9 +9,7 @@ def application_run():
     print("Performing calculation...")
     
     try:
-        divisor = 2
-        if divisor == 0:
-            raise ZeroDivisionError("Divisor cannot be zero")
+        divisor = 2 #Fixed: Changed divisor to avoid division by zero
         result = 10 / divisor
         print(f"The result is: {result}")
     except ZeroDivisionError as e:

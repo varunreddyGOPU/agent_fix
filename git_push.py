@@ -1,7 +1,10 @@
 import os
 from git import Repo
 from github import Github
+from dotenv import load_dotenv
 
+# --- Configuration Loading ---
+load_dotenv()
 # --- Configuration ---
 notification_config = {
     "token": os.getenv("GITHUB_TOKEN"),

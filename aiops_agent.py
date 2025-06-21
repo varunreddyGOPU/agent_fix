@@ -76,7 +76,7 @@ class LogAnalyzer:
 
     def find_critical_errors(self) -> List:
         """Finds log entries containing critical keywords."""
-        critical_errors =
+        critical_errors = []
         try:
             with open(self.log_file_path, 'r') as f:
                 lines = f.readlines()
@@ -90,7 +90,7 @@ class LogAnalyzer:
                 if match:
                     error_data = match.groupdict()
                     # Include full traceback if it follows
-                    traceback_lines =
+                    traceback_lines = []
                     current_line_index = lines.index(line)
                     for next_line in lines[current_line_index + 1:]:
                         if self.log_pattern.match(next_line):
@@ -105,7 +105,7 @@ class LogAnalyzer:
 
     def find_preceding_events(self, error_timestamp_str: str, window_minutes: int = 5) -> List:
         """Finds events that occurred within a time window before a critical error."""
-        preceding_events =
+        preceding_events = []
         error_timestamp = datetime.strptime(error_timestamp_str, '%Y-%m-%d %H:%M:%S,%f')
         window_start_time = error_timestamp - timedelta(minutes=window_minutes)
 
@@ -134,7 +134,7 @@ class LogAnalyzer:
             return None
 
         # Focus on the most recent critical error
-        latest_error = sorted(critical_errors, key=lambda x: x['timestamp'], reverse=True)
+        latest_error = sorted(critical_errors, key=lambda x: x['timestamp'], reverse=True)[0]
         print(f"Found critical error at {latest_error['timestamp']}:\n{latest_error['message']}")
 
         preceding_events = self.find_preceding_events(latest_error['timestamp'])
@@ -334,11 +334,20 @@ class GitManager:
 
                 # 4. Push the new branch to the remote
                 origin = self.repo.remote(name='origin')
-                origin.push(refspec=f'{branch_name}:{branch_name}')
-                print(f"Pushed branch '{branch_name}' to remote.")
+                try:
+                    origin.push(refspec=f'{branch_name}:{branch_name}')
+                    print(f"Pushed branch '{branch_name}' to remote.")
+                except Exception as e:
+                    print(f"Error pushing to remote: {e}")
+                    return None
                 
-                # Return to main branch
-                self.repo.heads.master.checkout()
+                # Return to main branch (support both 'master' and 'main')
+                if 'master' in self.repo.heads:
+                    self.repo.heads.master.checkout()
+                elif 'main' in self.repo.heads:
+                    self.repo.heads.main.checkout()
+                else:
+                    print("Warning: Neither 'master' nor 'main' branch found.")
                 return branch_name
 
             except Exception as e:
@@ -350,12 +359,12 @@ class GitManager:
 
 class NotificationManager:
     """
-    Handles creation of pull requests and sending email notifications.
+    Handles notifications: GitHub PR creation and email alerts.
     """
-    def __init__(self, config: Dict):
+    def __init__(self, config):
         self.config = config
 
-    def create_pull_request(self, branch_name: str, rca: str) -> Optional[str]:
+    def create_pull_request(self, branch_name, rca, fixed_code):
         """Creates a pull request on GitHub."""
         print("\n--- Creating GitHub Pull Request ---")
         url = f"https://api.github.com/repos/{self.config['owner']}/{self.config['repo']}/pulls"
@@ -363,24 +372,175 @@ class NotificationManager:
             "Authorization": f"token {self.config['token']}",
             "Accept": "application/vnd.github.v3+json",
         }
-        title = f"Automated Fix: {rca.splitlines()}"
+        title = f"Automated Fix: {rca.splitlines()[0]}"
         body = f"""
 ## Automated Remediation by AIOps Agent
 
 **Root Cause Analysis:**
-`````
+```
 {rca}
-`````
+```
 **AI-Generated Code Fix:**
-`````
-# ...existing code...
+```
+{fixed_code}
+```
+**Disclaimer:** This pull request was created automatically by the AIOps agent. Please review the changes before merging.
+"""
+        data = {
+            "title": title,
+            "head": branch_name,
+            "base": "master",  # or "main", depending on your repo
+            "body": body,
+            "assignees": [self.config["assignee"]],
+        }
+        try:
+            response = requests.post(url, headers=headers, json=data)
+            response.raise_for_status()
+            pr_url = response.json().get("html_url")
+            print(f"Pull request created: {pr_url}")
+            return pr_url
+        except Exception as e:
+            print(f"Error creating pull request: {e}")
+            return None
+
+    def send_email_notification(self, pr_url: str, rca: str, to_address: str) -> None:
+        """Sends an email notification about the new pull request."""
+        subject = "Automated Pull Request Created by AIOps Agent"
+        body = f"""
+A new pull request has been created automatically by the AIOps agent.
+
+**Pull Request URL:** {pr_url}
+
+**Root Cause Analysis:**
+```
+{rca}
+```
+
+Please review the pull request at your earliest convenience.
+
+---
+This is an automated message from the AIOps agent.
+        """
+        try:
+            print("Preparing to send email notification...")
+            print(f"SMTP server: {self.config['smtp_server']}")
+            print(f"SMTP port: {self.config['smtp_port']}")
+            print(f"Sender: {self.config['smtp_user']}")
+            print(f"Recipient: {to_address}")
+            print(f"Subject: {subject}")
+            print(f"Body:\n{body}")
+            with smtplib.SMTP(self.config["smtp_server"], self.config["smtp_port"]) as server:
+                server.starttls()
+                server.login(self.config["smtp_user"], self.config["smtp_pass"])
+                message = f"Subject: {subject}\n\n{body}"
+                server.sendmail(self.config["smtp_user"], to_address, message)
+            print(f"Email notification sent to {to_address}.")
+        except Exception as e:
+            print(f"Error sending email notification: {e}")
+            import traceback
+            traceback.print_exc()
+
+def create_mock_files():
+    """Creates mock application and log files for testing."""
+    # Simple Python app with a deliberate error
+    app_code = '''
+def buggy_function():
+    total = 0
+    for i in range(5)
+        total += i
+    return total
+
+result = buggy_function()
+print("The result is:", results)
 
 try:
     print("Attempting to divide 10 by 0.")
-    result = 10 / 0
-except Exception as e:
-    print("An error occurred. Check the log file 'app_error.log' for details.")
+    divisor = 0
+    if divisor = 0:
+        result = float('inf') # or handle it appropriately for your application
+        print("Division by zero avoided. Result set to infinity.")
+    else:
+        result = 10 / divisor
+except Exception as e
+    print("An unexpected error occurred.")
     with open('app_error.log', 'a') as log_file:
         log_file.write(f"{type(e).__name__}: {e}\n")
 
-print("Application run finished.")
+print("Application run finished."
+    '''.strip()
+
+    # Simulate an application log with an ERROR entry
+    log_content = '''
+2023-10-01 12:00:00,000 - INFO - Application starting...
+2023-10-01 12:00:01,000 - DEBUG - Initializing variables.
+2023-10-01 12:00:02,000 - INFO - Performing calculation...
+2023-10-01 12:00:03,000 - ERROR - Division by zero encountered.
+Traceback (most recent call last):
+  File "buggy_app.py", line 10, in <module>
+    result = 10 / 0
+ZeroDivisionError: division by zero
+2023-10-01 12:00:04,000 - INFO - Application finished.
+    '''.strip()
+
+    # Write the files to disk
+    with open('buggy_app.py', 'w') as f:
+        f.write(app_code)
+    with open('app.log', 'w') as f:
+        f.write(log_content)
+
+    print("Mock files created: 'buggy_app.py', 'app.log'.")
+
+def main():
+    # Step 1: Create mock application and log files
+    create_mock_files()
+
+    # Step 2: Analyze the log file to find critical errors and preceding events
+    log_analyzer = LogAnalyzer(log_file_path='app.log')
+    analysis_results = log_analyzer.analyze()
+
+    if not analysis_results:
+        print("No critical errors found. Exiting.")
+        return
+
+    # Step 3: Diagnose the issue and generate a code fix using AI
+    diagnoser = CodeDiagnoser(api_key=os.getenv("GOOGLE_API_KEY"))
+    diagnosis_results = diagnoser.get_diagnosis_and_fix(analysis_results, repo_path=".")
+
+    if not diagnosis_results:
+        print("AI diagnosis and code fix generation failed. Exiting.")
+        return
+
+    # Step 4: Apply the generated code fix as a patch
+    patcher = CodePatcher(repo_path=".")
+    patched_file = patcher.apply_patch(analysis_results["culprit_file"], diagnosis_results["fixed_code"])
+
+    if not patched_file:
+        print("Failed to apply code patch. Exiting.")
+        return
+
+    # Step 5: Commit and push the changes to a new Git branch
+    git_manager = GitManager(repo_path=".")
+    branch_name = git_manager.create_commit_and_push(patched_file, diagnosis_results["root_cause_analysis"])
+
+    if not branch_name:
+        print("Git commit and push failed. Exiting.")
+        return
+
+    # Step 6: Create a pull request on GitHub and send an email notification
+    notification_manager = NotificationManager(config={
+        "token": os.getenv("GITHUB_TOKEN"),
+        "owner": os.getenv("GITHUB_REPO_OWNER"),
+        "repo": os.getenv("GITHUB_REPO_NAME"),
+        "assignee": os.getenv("PR_ASSIGNEE"),
+        "smtp_server": os.getenv("EMAIL_HOST"),
+        "smtp_port": int(os.getenv("EMAIL_PORT", 587)),
+        "smtp_user": os.getenv("EMAIL_USER"),
+        "smtp_pass": os.getenv("EMAIL_PASS"),
+    })
+    pr_url = notification_manager.create_pull_request(branch_name, diagnosis_results["root_cause_analysis"], diagnosis_results["fixed_code"])
+
+    if pr_url:
+        notification_manager.send_email_notification(pr_url, diagnosis_results["root_cause_analysis"], os.getenv("EMAIL_RECIPIENT"))
+
+if __name__ == "__main__":
+    main()

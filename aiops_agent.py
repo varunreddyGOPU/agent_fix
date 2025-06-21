@@ -601,10 +601,10 @@ ZeroDivisionError: division by zero
     # Write the files to disk
     with open('buggy_app.py', 'w') as f:
         f.write(app_code)
-    with open('app.log', 'w') as f:
+    with open('app_error.log', 'w') as f:
         f.write(log_content)
 
-    print("Mock files created: 'buggy_app.py', 'app.log'.")
+    print("Mock files created: 'buggy_app.py', 'app_error.log'.")
 
 # --- Agent Functions ---
 def error_finder_agent(log_file_path: str, email_recipient: str, notification_config: Dict) -> Optional[Dict]:
@@ -717,7 +717,7 @@ def main():
 
     # Agent 1: Error Finder
     analysis_results = error_finder_agent(
-        log_file_path='app.log',
+        log_file_path='app_error.log',
         email_recipient=email_recipient,
         notification_config=notification_config
     )

@@ -1,9 +1,9 @@
-2025-06-20 19:33:57,369 - INFO - Application starting...
-2025-06-20 19:33:57,369 - INFO - Performing calculation...
-2025-06-20 19:33:57,369 - ERROR - ZeroDivisionError: division by zero
+2025-06-20 19:36:45,064 - INFO - Application starting...
+2025-06-20 19:36:45,064 - INFO - Performing calculation...
+2025-06-20 19:36:45,064 - ERROR - ZeroDivisionError: division by zero
 Traceback (most recent call last):
   File "buggy_app.py", line 18, in application_run
     result = 10 / divisor
 ZeroDivisionError: division by zero
-2025-06-20 19:33:57,369 - INFO - Caught ZeroDivisionError: division by zero
-2025-06-20 19:33:57,369 - INFO - Application run finished.
+2025-06-20 19:36:45,064 - INFO - Caught ZeroDivisionError: division by zero
+2025-06-20 19:36:45,064 - INFO - Application run finished.

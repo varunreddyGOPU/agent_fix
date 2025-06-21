@@ -818,3 +818,26 @@ pr = github_repo.create_pull(
 )
 
 print(f"Pull request created: {pr.html_url}")
+
+# Send email notification after PR creation
+import smtplib
+subject = "Automated Pull Request Created by AIOps Agent"
+body = f"""
+A new pull request has been created automatically by the AIOps agent.
+
+Pull Request URL: {pr.html_url}
+
+Please review the pull request at your earliest convenience.
+
+---
+This is an automated message from the AIOps agent.
+"""
+try:
+    with smtplib.SMTP(os.getenv("EMAIL_HOST"), int(os.getenv("EMAIL_PORT", 587))) as server:
+        server.starttls()
+        server.login(os.getenv("EMAIL_USER"), os.getenv("EMAIL_PASS"))
+        message = f"Subject: {subject}\n\n{body}"
+        server.sendmail(os.getenv("EMAIL_USER"), os.getenv("EMAIL_RECIPIENT"), message)
+    print(f"Email notification sent to {os.getenv('EMAIL_RECIPIENT')}")
+except Exception as e:
+    print(f"Error sending email notification: {e}")
